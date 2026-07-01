@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #FAF6EF;
+  color: #2A2620;
+  font-family: 'Jost', sans-serif;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+}
+
+.serif { font-family: 'Playfair Display', serif; }
+
+.btn-primary {
+  @apply bg-gold text-white font-medium px-6 py-3 rounded-sm hover:bg-gold-light transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.btn-secondary {
+  @apply bg-transparent text-espresso font-medium px-6 py-3 rounded-sm border border-border hover:border-gold transition-all duration-200;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.input {
+  @apply w-full bg-cream border border-border rounded-sm px-4 py-3 text-espresso placeholder-espresso-soft/50 focus:outline-none focus:border-gold transition-colors;
+  font-family: 'Jost', sans-serif;
+}
+
+.card {
+  @apply bg-cream-deep border border-border rounded-md p-6;
+}
+
+.eyebrow {
+  @apply text-gold uppercase;
+  letter-spacing: 3px;
+  font-size: 12px;
+}
