@@ -2,6 +2,14 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
+function friendlyAuthError(error) {
+  const raw = error?.message
+  if (typeof raw !== 'string' || !raw.trim() || raw.trim() === '{}') {
+    return 'Something went wrong. Please try again.'
+  }
+  return raw
+}
+
 export function Login() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
@@ -14,7 +22,7 @@ export function Login() {
     e.preventDefault()
     setLoading(true); setError('')
     const { error } = await signIn(email, password)
-    if (error) { setError(typeof error.message === 'string' && error.message ? error.message : 'Something went wrong. Please try again.'); setLoading(false) }
+    if (error) { setError(friendlyAuthError(error)); setLoading(false) }
     else navigate('/dashboard')
   }
 
@@ -49,7 +57,7 @@ export function Signup() {
     e.preventDefault()
     setLoading(true); setError('')
     const { error } = await signUp(email, password, name)
-    if (error) { setError(typeof error.message === 'string' && error.message ? error.message : 'Something went wrong. Please try again.'); setLoading(false) }
+    if (error) { setError(friendlyAuthError(error)); setLoading(false) }
     else navigate('/dashboard')
   }
 
@@ -80,7 +88,7 @@ export function ForgotPassword() {
     e.preventDefault()
     setLoading(true); setError('')
     const { error } = await resetPassword(email)
-    if (error) { setError(typeof error.message === 'string' && error.message ? error.message : 'Something went wrong. Please try again.'); setLoading(false) }
+    if (error) { setError(friendlyAuthError(error)); setLoading(false) }
     else setSent(true)
   }
 
@@ -114,7 +122,7 @@ export function ResetPassword() {
     e.preventDefault()
     setLoading(true); setError('')
     const { error } = await updatePassword(password)
-    if (error) { setError(typeof error.message === 'string' && error.message ? error.message : 'Something went wrong. Please try again.'); setLoading(false) }
+    if (error) { setError(friendlyAuthError(error)); setLoading(false) }
     else { setDone(true); setTimeout(() => navigate('/dashboard'), 1500) }
   }
 
