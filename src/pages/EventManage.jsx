@@ -121,7 +121,7 @@ export default function EventManage() {
           <div class="qr"><img src="${qrDataUrl}" /></div>
           <div class="cta">📸 Scan to share your photos</div>
           <div class="sub">Point your phone camera at the code — no app needed</div>
-          <div class="brand">Powered by <b>Heirloomoments</b></div>
+          <div class="brand">Powered by <a href="https://stacktlv.com" target="_blank" rel="noopener noreferrer"><b>STACKT</b></a></div>
         </div>
       </body></html>
     `)
@@ -137,7 +137,7 @@ export default function EventManage() {
     <div className="min-h-screen bg-cream">
       <header className="border-b border-border px-6 py-4 flex items-center gap-4 max-w-6xl mx-auto">
         <Link to="/dashboard" className="text-espresso-soft hover:text-espresso transition-colors text-sm">← Dashboard</Link>
-        <span className="serif text-lg tracking-wide">Heirloo<span className="text-gold">moments</span></span>
+        <span className="serif text-lg tracking-wide">Share <span className="text-gold">2</span> Share</span>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-10">

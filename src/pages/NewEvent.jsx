@@ -38,7 +38,7 @@ export default function NewEvent() {
     <div className="min-h-screen bg-cream">
       <header className="border-b border-border px-6 py-4 flex items-center gap-4 max-w-6xl mx-auto">
         <Link to="/dashboard" className="text-espresso-soft hover:text-espresso transition-colors">← Dashboard</Link>
-        <span className="serif text-lg tracking-wide">Heirloo<span className="text-gold">moments</span></span>
+        <span className="serif text-lg tracking-wide">Share <span className="text-gold">2</span> Share</span>
       </header>
       <main className="max-w-xl mx-auto px-6 py-12">
         <h1 className="serif text-4xl mb-2">Create an event</h1>

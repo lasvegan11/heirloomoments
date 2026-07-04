@@ -69,7 +69,7 @@ export function Signup() {
 function AuthLayout({ title, subtitle, children }) {
   return (
     <div className="min-h-screen bg-cream flex flex-col items-center justify-center px-4">
-      <Link to="/" className="serif text-2xl mb-10 tracking-wide">Heirloo<span className="text-gold">moments</span></Link>
+      <Link to="/" className="serif text-2xl mb-10 tracking-wide">Share <span className="text-gold">2</span> Share</Link>
       <div className="card w-full max-w-md">
         <h1 className="serif text-3xl mb-1">{title}</h1>
         <p className="text-espresso-soft text-sm mb-8">{subtitle}</p>

@@ -5,7 +5,7 @@ export default function Landing() {
     <div className="min-h-screen bg-cream">
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-7 max-w-6xl mx-auto">
-        <span className="serif text-2xl tracking-wide">Heirloo<span className="text-gold">moments</span></span>
+        <span className="serif text-2xl tracking-wide">Share <span className="text-gold">2</span> Share</span>
         <div className="flex gap-6 items-center">
           <Link to="/login" className="btn-secondary">Log in</Link>
           <Link to="/signup" className="btn-primary">Get started</Link>
@@ -59,8 +59,8 @@ export default function Landing() {
         <div className="grid md:grid-cols-3 gap-6">
           {[
             { name: 'Free', price: '$0', feats: ['50 uploads', '7-day gallery', 'Live slideshow', 'Batch download'], cta: 'Get started' },
-            { name: 'Plus', price: '$39', feats: ['500 uploads', '90-day gallery', 'Live slideshow', 'Moderation tools'], cta: 'Choose Plus', highlight: true },
-            { name: 'Pro', price: '$99', feats: ['Unlimited uploads', '1-year gallery', 'Live slideshow', 'Priority support'], cta: 'Choose Pro' },
+            { name: 'Plus', price: '$39', feats: ['150 uploads', '90-day gallery', 'Live slideshow', 'Moderation tools'], cta: 'Choose Plus', highlight: true },
+            { name: 'Pro', price: '$99', feats: ['Unlimited uploads', '6-month gallery', 'Live slideshow', 'Priority support'], cta: 'Choose Pro' },
           ].map(({ name, price, feats, cta, highlight }) => (
             <div key={name} className={`card relative text-center ${highlight ? 'border-gold' : ''}`}>
               {highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gold text-white text-[10px] tracking-widest uppercase px-4 py-1.5 rounded-sm">Most Loved</div>}
@@ -82,8 +82,8 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="text-center py-14 border-t border-border mt-10">
-        <div className="serif text-xl mb-3">Heirloo<span className="text-gold">moments</span></div>
-        <p className="text-espresso-soft text-sm tracking-wide">Crafted in Las Vegas by <span className="text-gold">STACKT</span></p>
+        <div className="serif text-xl mb-3">Share <span className="text-gold">2</span> Share</div>
+        <p className="text-espresso-soft text-sm tracking-wide">Crafted in Las Vegas by <a href="https://stacktlv.com" target="_blank" rel="noopener noreferrer" className="text-gold hover:underline">STACKT</a></p>
       </footer>
     </div>
   )

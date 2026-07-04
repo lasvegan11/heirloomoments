@@ -4,6 +4,38 @@ import { supabase } from '../lib/supabase'
 
 const MAX_VIDEO_MB = 100
 const MAX_PHOTO_MB = 25
+const MAX_VIDEO_SECONDS = 60
+const PHOTO_MAX_DIMENSION = 2000
+const PHOTO_QUALITY = 0.82
+
+async function compressImage(file) {
+  if (file.type === 'image/gif') return file
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, PHOTO_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height))
+    const width = Math.round(bitmap.width * scale)
+    const height = Math.round(bitmap.height * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height)
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', PHOTO_QUALITY))
+    if (!blob || blob.size >= file.size) return file
+    return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
+}
+
+function getVideoDuration(file) {
+  return new Promise(resolve => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.onloadedmetadata = () => { URL.revokeObjectURL(video.src); resolve(video.duration) }
+    video.onerror = () => { URL.revokeObjectURL(video.src); resolve(0) }
+    video.src = URL.createObjectURL(file)
+  })
+}
 
 export default function GuestUpload() {
   const { slug } = useParams()
@@ -19,6 +51,7 @@ export default function GuestUpload() {
   const [notFound, setNotFound] = useState(false)
   const [uploadCount, setUploadCount] = useState(0)
   const [shareMsg, setShareMsg] = useState('')
+  const [processing, setProcessing] = useState(false)
   const fileRef = useRef()
 
   const guestUrl = typeof window !== 'undefined' ? window.location.href : ''
@@ -48,21 +81,36 @@ export default function GuestUpload() {
     return () => supabase.removeChannel(channel)
   }, [event])
 
-  function handleFileChange(e) {
+  async function handleFileChange(e) {
     const selected = Array.from(e.target.files)
     if (!selected.length) return
     setError('')
+    setProcessing(true)
     const valid = []
     for (const f of selected) {
       const isVideo = f.type.startsWith('video')
-      const maxMb = isVideo ? MAX_VIDEO_MB : MAX_PHOTO_MB
-      if (f.size > maxMb * 1024 * 1024) {
-        setError('"' + f.name + '" is too large. ' + (isVideo ? 'Videos' : 'Photos') + ' must be under ' + maxMb + 'MB.')
-        continue
+      if (isVideo) {
+        const duration = await getVideoDuration(f)
+        if (duration > MAX_VIDEO_SECONDS) {
+          setError('"' + f.name + '" is too long. Clips must be under ' + MAX_VIDEO_SECONDS + ' seconds.')
+          continue
+        }
+        if (f.size > MAX_VIDEO_MB * 1024 * 1024) {
+          setError('"' + f.name + '" is too large. Videos must be under ' + MAX_VIDEO_MB + 'MB.')
+          continue
+        }
+        valid.push({ file: f, preview: URL.createObjectURL(f), id: Math.random().toString(36).slice(2) })
+      } else {
+        const compressed = await compressImage(f)
+        if (compressed.size > MAX_PHOTO_MB * 1024 * 1024) {
+          setError('"' + f.name + '" is too large. Photos must be under ' + MAX_PHOTO_MB + 'MB.')
+          continue
+        }
+        valid.push({ file: compressed, preview: URL.createObjectURL(compressed), id: Math.random().toString(36).slice(2) })
       }
-      valid.push({ file: f, preview: URL.createObjectURL(f), id: Math.random().toString(36).slice(2) })
     }
     setFiles(prev => [...prev, ...valid])
+    setProcessing(false)
   }
 
   function removeFile(id) {
@@ -151,12 +199,12 @@ export default function GuestUpload() {
           </div>
         ) : (
           <div className="space-y-4">
-            <input ref={fileRef} type="file" accept="image/*,video/*" multiple onChange={handleFileChange} className="hidden" id="file-input" />
+            <input ref={fileRef} type="file" accept="image/*,video/*" multiple onChange={handleFileChange} className="hidden" id="file-input" disabled={processing} />
             {files.length === 0 ? (
-              <label htmlFor="file-input" className="card flex flex-col items-center justify-center py-16 cursor-pointer hover:border-gold transition-colors">
-                <div className="text-5xl mb-4">📸</div>
-                <p className="font-semibold mb-1">Tap to add photos or videos</p>
-                <p className="text-espresso-soft text-sm">Select as many as you want</p>
+              <label htmlFor="file-input" className={'card flex flex-col items-center justify-center py-16 transition-colors ' + (processing ? 'opacity-50' : 'cursor-pointer hover:border-gold')}>
+                <div className="text-5xl mb-4">{processing ? '⏳' : '📸'}</div>
+                <p className="font-semibold mb-1">{processing ? 'Processing…' : 'Tap to add photos or videos'}</p>
+                <p className="text-espresso-soft text-sm">{processing ? 'Just a moment' : 'Select as many as you want'}</p>
               </label>
             ) : (
               <>
@@ -171,8 +219,8 @@ export default function GuestUpload() {
                         className="absolute top-1 right-1 bg-black/60 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">✕</button>
                     </div>
                   ))}
-                  <label htmlFor="file-input" className="aspect-square border-2 border-dashed border-border rounded-xl flex items-center justify-center cursor-pointer hover:border-gold transition-colors text-2xl text-espresso-soft">
-                    +
+                  <label htmlFor="file-input" className={'aspect-square border-2 border-dashed border-border rounded-xl flex items-center justify-center transition-colors text-2xl text-espresso-soft ' + (processing ? 'opacity-50' : 'cursor-pointer hover:border-gold')}>
+                    {processing ? '⏳' : '+'}
                   </label>
                 </div>
                 <p className="text-espresso-soft text-xs text-center">{files.length} selected</p>
@@ -217,7 +265,7 @@ export default function GuestUpload() {
       )}
 
       <div className="text-center mt-10 text-espresso-soft text-xs">
-        Powered by <span style={{ color: brandColor }} className="font-semibold">Heirloomoments</span>
+        Powered by <a href="https://stacktlv.com" target="_blank" rel="noopener noreferrer" style={{ color: brandColor }} className="font-semibold">STACKT</a>
       </div>
     </div>
   )

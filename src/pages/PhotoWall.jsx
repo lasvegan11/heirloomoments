@@ -135,7 +135,7 @@ export default function PhotoWall() {
       )}
 
       <div className="text-center pb-4 text-espresso-soft/60 text-xs">
-        Powered by <span style={{ color: brandColor }} className="font-semibold">Heirloomoments</span>
+        Powered by <a href="https://stacktlv.com" target="_blank" rel="noopener noreferrer" style={{ color: brandColor }} className="font-semibold">STACKT</a>
       </div>
     </div>
   )

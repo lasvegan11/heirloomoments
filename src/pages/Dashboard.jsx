@@ -35,7 +35,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-cream">
       {/* Header */}
       <header className="border-b border-border px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
-        <Link to="/" className="serif text-xl tracking-wide">Heirloo<span className="text-gold">moments</span></Link>
+        <Link to="/" className="serif text-xl tracking-wide">Share <span className="text-gold">2</span> Share</Link>
         <div className="flex items-center gap-4">
           <span className="text-xs bg-gold/10 text-gold px-3 py-1 rounded-full font-semibold">{planLabel} plan</span>
           <span className="text-espresso-soft text-sm hidden md:block">{profile?.email || user?.email}</span>
