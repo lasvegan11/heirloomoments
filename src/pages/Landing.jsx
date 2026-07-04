@@ -4,11 +4,15 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-cream">
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-7 max-w-6xl mx-auto">
-        <span className="serif text-2xl tracking-wide">Share <span className="text-gold">2</span> Share</span>
-        <div className="flex gap-6 items-center">
-          <Link to="/login" className="btn-secondary">Log in</Link>
-          <Link to="/signup" className="btn-primary">Get started</Link>
+      <nav className="flex items-center justify-between px-6 py-4 sm:px-8 sm:py-7 max-w-6xl mx-auto">
+        <span className="serif tracking-wide leading-none flex flex-col items-center text-base sm:flex-row sm:gap-1.5 sm:text-2xl">
+          <span>Share</span>
+          <span className="text-gold text-[10px] sm:text-2xl leading-none">2</span>
+          <span>Share</span>
+        </span>
+        <div className="flex gap-2 sm:gap-6 items-center">
+          <Link to="/login" className="text-xs sm:text-sm uppercase tracking-wider px-3 py-1.5 sm:px-6 sm:py-3 border border-border rounded-sm text-espresso hover:border-gold transition-all duration-200">Log in</Link>
+          <Link to="/signup" className="text-xs sm:text-sm uppercase tracking-wider px-3 py-1.5 sm:px-6 sm:py-3 rounded-sm bg-gold text-white hover:bg-gold-light transition-all duration-200">Get started</Link>
         </div>
       </nav>
 

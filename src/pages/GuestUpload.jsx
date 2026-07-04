@@ -37,6 +37,25 @@ function getVideoDuration(file) {
   })
 }
 
+function getVideoPoster(file) {
+  return new Promise(resolve => {
+    const video = document.createElement('video')
+    video.preload = 'auto'
+    video.muted = true
+    video.playsInline = true
+    video.onloadeddata = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      canvas.getContext('2d').drawImage(video, 0, 0)
+      URL.revokeObjectURL(video.src)
+      resolve(canvas.toDataURL('image/jpeg', 0.7))
+    }
+    video.onerror = () => { URL.revokeObjectURL(video.src); resolve(null) }
+    video.src = URL.createObjectURL(file)
+  })
+}
+
 export default function GuestUpload() {
   const { slug } = useParams()
   const [event, setEvent] = useState(null)
@@ -100,7 +119,8 @@ export default function GuestUpload() {
           setError('"' + f.name + '" is too large. Videos must be under ' + MAX_VIDEO_MB + 'MB.')
           continue
         }
-        valid.push({ file: f, preview: URL.createObjectURL(f), id: Math.random().toString(36).slice(2) })
+        const poster = await getVideoPoster(f)
+        valid.push({ file: f, preview: URL.createObjectURL(f), poster, id: Math.random().toString(36).slice(2) })
       } else {
         const compressed = await compressImage(f)
         if (compressed.size > MAX_PHOTO_MB * 1024 * 1024) {
@@ -189,7 +209,7 @@ export default function GuestUpload() {
         <div className="w-3 h-3 rounded-full mx-auto mb-4" style={{ backgroundColor: brandColor }} />
         <h1 className="serif text-3xl mb-1">{event.title}</h1>
         {event.date && <p className="text-espresso-soft text-sm">{new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>}
-        <p className="text-espresso-soft text-xs mt-2">{uploadCount} photo{uploadCount !== 1 ? 's' : ''} shared</p>
+        <p className="text-espresso-soft text-xs mt-2">{uploadCount} moment{uploadCount !== 1 ? 's' : ''} shared</p>
         <button onClick={handleShare} className="absolute top-8 right-6 text-sm px-3 py-1.5 rounded-full border border-border hover:border-gold transition-colors">
           {shareMsg || '↗ Share'}
         </button>
@@ -202,7 +222,7 @@ export default function GuestUpload() {
             <h2 className="serif text-2xl mb-2">
               {failedFiles.length > 0
                 ? (progress.total - failedFiles.length) + ' of ' + progress.total + ' shared'
-                : (event.moderation_enabled ? progress.total + ' submitted for review!' : progress.total + ' photo' + (progress.total !== 1 ? 's' : '') + ' shared!')}
+                : (event.moderation_enabled ? progress.total + ' submitted for review!' : progress.total + ' moment' + (progress.total !== 1 ? 's' : '') + ' shared!')}
             </h2>
             <p className="text-espresso-soft text-sm mb-6">
               {failedFiles.length > 0
@@ -234,7 +254,7 @@ export default function GuestUpload() {
                   {files.map(item => (
                     <div key={item.id} className="relative aspect-square">
                       {item.file.type.startsWith('video')
-                        ? <video src={item.preview} className="w-full h-full object-cover rounded-xl" />
+                        ? <video src={item.preview} poster={item.poster || undefined} muted playsInline controls className="w-full h-full object-cover rounded-xl" />
                         : <img src={item.preview} alt="" className="w-full h-full object-cover rounded-xl" />
                       }
                       <button onClick={() => removeFile(item.id)}

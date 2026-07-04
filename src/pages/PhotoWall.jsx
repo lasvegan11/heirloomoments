@@ -76,7 +76,7 @@ export default function PhotoWall() {
             </button>
           )}
           <div className="text-espresso-soft text-sm">
-            {uploads.length} photo{uploads.length !== 1 ? 's' : ''} shared
+            {uploads.length} moment{uploads.length !== 1 ? 's' : ''} shared
           </div>
         </div>
       </div>
