@@ -7,6 +7,8 @@ import './index.css'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import NewEvent from './pages/NewEvent'
 import EventManage from './pages/EventManage'
@@ -27,6 +29,8 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard/events/new" element={<ProtectedRoute><NewEvent /></ProtectedRoute>} />
           <Route path="/dashboard/events/:slug" element={<ProtectedRoute><EventManage /></ProtectedRoute>} />

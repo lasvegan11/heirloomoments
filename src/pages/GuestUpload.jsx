@@ -52,6 +52,7 @@ export default function GuestUpload() {
   const [uploadCount, setUploadCount] = useState(0)
   const [shareMsg, setShareMsg] = useState('')
   const [processing, setProcessing] = useState(false)
+  const [failedFiles, setFailedFiles] = useState([])
   const fileRef = useRef()
 
   const guestUrl = typeof window !== 'undefined' ? window.location.href : ''
@@ -127,6 +128,7 @@ export default function GuestUpload() {
     setProgress({ done: 0, total: files.length })
     const status = event.moderation_enabled ? 'pending' : 'approved'
     let done = 0
+    const failed = []
     for (const item of files) {
       const { file } = item
       const ext = file.name.split('.').pop()
@@ -135,20 +137,30 @@ export default function GuestUpload() {
       if (!storageError) {
         const { data: { publicUrl } } = supabase.storage.from('event-media').getPublicUrl(fileName)
         const fileType = file.type.startsWith('video') ? 'video' : 'photo'
-        await supabase.from('uploads').insert({
+        const { error: insertError } = await supabase.from('uploads').insert({
           event_id: event.id, file_url: publicUrl, file_type: fileType,
           caption: caption || null, uploader_name: guestName || null, status
         })
+        if (insertError) failed.push(item)
+      } else {
+        failed.push(item)
       }
       done++
       setProgress({ done, total: files.length })
     }
+    setFailedFiles(failed)
     setUploaded(true); setUploading(false)
   }
 
   function handleUploadAnother() {
-    setFiles([]); setCaption(''); setUploaded(false); setError(''); setProgress({ done: 0, total: 0 })
+    setFiles([]); setCaption(''); setUploaded(false); setError(''); setProgress({ done: 0, total: 0 }); setFailedFiles([])
     if (fileRef.current) fileRef.current.value = ''
+  }
+
+  function handleRetryFailed() {
+    setFiles(failedFiles)
+    setFailedFiles([])
+    setUploaded(false)
   }
 
   async function handleShare() {
@@ -186,16 +198,26 @@ export default function GuestUpload() {
       <div className="px-6 py-8 max-w-md mx-auto">
         {uploaded ? (
           <div className="card text-center py-10">
-            <div className="text-5xl mb-4">🎉</div>
+            <div className="text-5xl mb-4">{failedFiles.length > 0 ? '⚠️' : '🎉'}</div>
             <h2 className="serif text-2xl mb-2">
-              {event.moderation_enabled ? progress.total + ' submitted for review!' : progress.total + ' photo' + (progress.total !== 1 ? 's' : '') + ' shared!'}
+              {failedFiles.length > 0
+                ? (progress.total - failedFiles.length) + ' of ' + progress.total + ' shared'
+                : (event.moderation_enabled ? progress.total + ' submitted for review!' : progress.total + ' photo' + (progress.total !== 1 ? 's' : '') + ' shared!')}
             </h2>
             <p className="text-espresso-soft text-sm mb-6">
-              {event.moderation_enabled ? 'They\'ll appear once approved by the host.' : 'They\'re now in the live album below.'}
+              {failedFiles.length > 0
+                ? failedFiles.length + ' failed to upload — check your connection and try again.'
+                : (event.moderation_enabled ? 'They\'ll appear once approved by the host.' : 'They\'re now in the live album below.')}
             </p>
-            <button onClick={handleUploadAnother} className="btn-primary w-full" style={{ backgroundColor: brandColor }}>
-              Share more
-            </button>
+            {failedFiles.length > 0 ? (
+              <button onClick={handleRetryFailed} className="btn-primary w-full" style={{ backgroundColor: brandColor }}>
+                Retry {failedFiles.length} failed
+              </button>
+            ) : (
+              <button onClick={handleUploadAnother} className="btn-primary w-full" style={{ backgroundColor: brandColor }}>
+                Share more
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">

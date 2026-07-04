@@ -16,7 +16,7 @@ export default function Landing() {
       <section className="text-center px-6 py-24 max-w-4xl mx-auto">
         <div className="eyebrow mb-7">Event Photo Sharing · Las Vegas</div>
         <h1 className="serif text-5xl md:text-7xl leading-tight mb-7 font-medium">
-          Every moment,<br /><em className="text-gold">kept forever.</em>
+          Share your event photos,<br /><em className="text-gold">as they happen.</em>
         </h1>
         <p className="text-espresso-soft text-xl mb-10 max-w-xl mx-auto leading-relaxed">
           Create an event, share a single QR code. Your guests capture the day from every angle — no app, no downloads, just memories gathered in one beautiful place.
