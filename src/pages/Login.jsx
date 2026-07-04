@@ -14,7 +14,7 @@ export function Login() {
     e.preventDefault()
     setLoading(true); setError('')
     const { error } = await signIn(email, password)
-    if (error) { setError(error.message); setLoading(false) }
+    if (error) { setError(typeof error.message === 'string' && error.message ? error.message : 'Something went wrong. Please try again.'); setLoading(false) }
     else navigate('/dashboard')
   }
 
@@ -49,7 +49,7 @@ export function Signup() {
     e.preventDefault()
     setLoading(true); setError('')
     const { error } = await signUp(email, password, name)
-    if (error) { setError(error.message); setLoading(false) }
+    if (error) { setError(typeof error.message === 'string' && error.message ? error.message : 'Something went wrong. Please try again.'); setLoading(false) }
     else navigate('/dashboard')
   }
 
@@ -80,7 +80,7 @@ export function ForgotPassword() {
     e.preventDefault()
     setLoading(true); setError('')
     const { error } = await resetPassword(email)
-    if (error) { setError(error.message); setLoading(false) }
+    if (error) { setError(typeof error.message === 'string' && error.message ? error.message : 'Something went wrong. Please try again.'); setLoading(false) }
     else setSent(true)
   }
 
@@ -114,7 +114,7 @@ export function ResetPassword() {
     e.preventDefault()
     setLoading(true); setError('')
     const { error } = await updatePassword(password)
-    if (error) { setError(error.message); setLoading(false) }
+    if (error) { setError(typeof error.message === 'string' && error.message ? error.message : 'Something went wrong. Please try again.'); setLoading(false) }
     else { setDone(true); setTimeout(() => navigate('/dashboard'), 1500) }
   }
 
