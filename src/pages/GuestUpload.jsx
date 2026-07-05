@@ -216,7 +216,13 @@ export default function GuestUpload() {
       </div>
 
       <div className="px-6 py-8 max-w-md mx-auto">
-        {uploaded ? (
+        {event.payment_status === 'pending' ? (
+          <div className="card text-center py-10">
+            <div className="text-5xl mb-4">⏳</div>
+            <h2 className="serif text-xl mb-2">Not ready for uploads yet</h2>
+            <p className="text-espresso-soft text-sm">The host is still finishing setup. Check back soon!</p>
+          </div>
+        ) : uploaded ? (
           <div className="card text-center py-10">
             <div className="text-5xl mb-4">{failedFiles.length > 0 ? '⚠️' : '🎉'}</div>
             <h2 className="serif text-2xl mb-2">

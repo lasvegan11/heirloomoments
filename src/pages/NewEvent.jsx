@@ -3,17 +3,21 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase, slugify, PLAN_LIMITS } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 
+// Prices in dollars, for display only. Actual charge amount is set
+// server-side in api/create-checkout-session.js — keep both in sync.
+const PLAN_PRICES = { free: '$0', plus: '$39', pro: '$99' }
+
 export default function NewEvent() {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [title, setTitle] = useState('')
   const [date, setDate] = useState('')
   const [brandColor, setBrandColor] = useState('#FF7A1A')
   const [moderation, setModeration] = useState(false)
+  const [plan, setPlan] = useState('free')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const plan = profile?.plan || 'free'
   const limits = PLAN_LIMITS[plan]
 
   async function handleSubmit(e) {
@@ -29,9 +33,32 @@ export default function NewEvent() {
       moderation_enabled: moderation,
       max_uploads: limits.max_uploads,
       retention_days: limits.retention_days,
+      payment_status: plan === 'free' ? 'paid' : 'pending',
+      plan,
     }).select().single()
-    if (error) { setError(error.message); setLoading(false) }
-    else navigate(`/dashboard/events/${data.slug}`)
+
+    if (error) { setError(error.message); setLoading(false); return }
+
+    if (plan === 'free') {
+      navigate(`/dashboard/events/${data.slug}`)
+      return
+    }
+
+    try {
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId: data.id, slug: data.slug, plan, eventTitle: data.title,
+          origin: window.location.origin,
+        }),
+      })
+      const session = await res.json()
+      if (!res.ok || !session.url) throw new Error(session.error || 'Could not start checkout')
+      window.location.href = session.url
+    } catch {
+      navigate(`/dashboard/events/${data.slug}`)
+    }
   }
 
   return (
@@ -69,14 +96,27 @@ export default function NewEvent() {
               <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${moderation ? 'left-7' : 'left-1'}`} />
             </button>
           </div>
-          <div className="card bg-gold/5 border-gold/20">
-            <div className="text-sm text-espresso-soft">
-              <span className="text-gold font-semibold capitalize">{plan}</span> plan limits: {limits.max_uploads === 999999 ? 'Unlimited' : limits.max_uploads} uploads · {limits.retention_days}-day storage
+          <div>
+            <label className="block text-sm font-medium mb-2">Choose a plan</label>
+            <div className="grid grid-cols-3 gap-3">
+              {['free', 'plus', 'pro'].map(key => {
+                const l = PLAN_LIMITS[key]
+                const selected = plan === key
+                return (
+                  <button type="button" key={key} onClick={() => setPlan(key)}
+                    className={`card text-center py-4 ${selected ? 'border-gold' : ''}`}>
+                    <div className="uppercase tracking-widest text-xs text-espresso-soft mb-2">{l.label}</div>
+                    <div className="serif text-2xl mb-2">{PLAN_PRICES[key]}</div>
+                    <div className="text-espresso-soft text-xs">{l.max_uploads === 999999 ? 'Unlimited' : l.max_uploads} uploads</div>
+                    <div className="text-espresso-soft text-xs">{l.retention_days}-day storage</div>
+                  </button>
+                )
+              })}
             </div>
           </div>
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <button className="btn-primary w-full" disabled={loading}>
-            {loading ? 'Creating…' : 'Create event & get QR code →'}
+            {loading ? (plan === 'free' ? 'Creating…' : 'Redirecting to payment…') : (plan === 'free' ? 'Create event & get QR code →' : `Continue to payment (${PLAN_PRICES[plan]}) →`)}
           </button>
         </form>
       </main>

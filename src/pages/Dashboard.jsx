@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase, PLAN_LIMITS } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 
 export default function Dashboard() {
@@ -28,16 +28,12 @@ export default function Dashboard() {
     navigate('/')
   }
 
-  const plan = profile?.plan || 'free'
-  const planLabel = PLAN_LIMITS[plan]?.label || 'Free'
-
   return (
     <div className="min-h-screen bg-cream">
       {/* Header */}
       <header className="border-b border-border px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
         <Link to="/" className="serif text-xl tracking-wide">Share <span className="text-gold">2</span> Share</Link>
         <div className="flex items-center gap-4">
-          <span className="text-xs bg-gold/10 text-gold px-3 py-1 rounded-full font-semibold">{planLabel} plan</span>
           <span className="text-espresso-soft text-sm hidden md:block">{profile?.email || user?.email}</span>
           <button onClick={handleSignOut} className="text-espresso-soft hover:text-espresso text-sm transition-colors">Sign out</button>
         </div>
@@ -71,9 +67,10 @@ export default function Dashboard() {
                 </div>
                 <h3 className="serif text-xl mb-1 group-hover:text-gold transition-colors">{event.title}</h3>
                 <p className="text-espresso-soft text-sm mb-4">{event.date ? new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set'}</p>
-                <div className="flex items-center gap-3 text-xs text-espresso-soft">
+                <div className="flex items-center gap-3 text-xs text-espresso-soft flex-wrap">
                   <span>📷 {event.uploads?.[0]?.count || 0} uploads</span>
                   {event.moderation_enabled && <span>🔍 Moderation on</span>}
+                  {event.payment_status === 'pending' && <span className="text-yellow-600 font-semibold">⚠ Payment pending</span>}
                 </div>
               </Link>
             ))}

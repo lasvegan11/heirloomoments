@@ -15,6 +15,7 @@ export default function EventManage() {
   const [tab, setTab] = useState('overview')
   const [downloading, setDownloading] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [payingNow, setPayingNow] = useState(false)
 
   const guestUrl = `${window.location.origin}/e/${slug}`
 
@@ -43,6 +44,35 @@ export default function EventManage() {
       .subscribe()
     return () => supabase.removeChannel(channel)
   }, [event, fetchUploads])
+
+  // Realtime subscription so payment_status flips to 'paid' automatically once the Stripe webhook lands
+  useEffect(() => {
+    if (!event) return
+    const channel = supabase.channel(`event-status-${event.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events', filter: `id=eq.${event.id}` },
+        payload => setEvent(payload.new))
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [event?.id])
+
+  async function handleCompletePayment() {
+    setPayingNow(true)
+    try {
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId: event.id, slug: event.slug, plan: event.plan, eventTitle: event.title,
+          origin: window.location.origin,
+        }),
+      })
+      const session = await res.json()
+      if (!res.ok || !session.url) throw new Error(session.error || 'Could not start checkout')
+      window.location.href = session.url
+    } catch {
+      setPayingNow(false)
+    }
+  }
 
   async function updateUploadStatus(uploadId, status) {
     await supabase.from('uploads').update({ status }).eq('id', uploadId)
@@ -155,6 +185,18 @@ export default function EventManage() {
             <a href={guestUrl} target="_blank" rel="noreferrer" className="btn-secondary text-sm py-2">👁 Preview Guest Page</a>
           </div>
         </div>
+
+        {event.payment_status === 'pending' && (
+          <div className="card border-yellow-500/40 bg-yellow-500/5 mb-8 flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <div className="font-medium">⚠ Payment pending</div>
+              <div className="text-espresso-soft text-sm">This event's {event.plan} plan payment hasn't completed yet — guests can't upload until it's paid.</div>
+            </div>
+            <button onClick={handleCompletePayment} disabled={payingNow} className="btn-primary text-sm py-2 px-4">
+              {payingNow ? 'Redirecting…' : 'Complete payment →'}
+            </button>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 mb-8 border-b border-border">
