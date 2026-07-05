@@ -63,8 +63,8 @@ export default function Landing() {
         <div className="grid md:grid-cols-3 gap-6">
           {[
             { name: 'Free', price: '$0', feats: ['50 uploads', '7-day gallery', 'Live slideshow', 'Batch download'], cta: 'Get started' },
-            { name: 'Plus', price: '$39', feats: ['150 uploads', '90-day gallery', 'Live slideshow', 'Moderation tools'], cta: 'Choose Plus', highlight: true },
-            { name: 'Pro', price: '$99', feats: ['Unlimited uploads', '6-month gallery', 'Live slideshow', 'Priority support'], cta: 'Choose Pro' },
+            { name: 'Plus', price: '$39', feats: ['150 uploads', '30-day gallery', 'Live slideshow', 'Moderation tools'], cta: 'Choose Plus', highlight: true },
+            { name: 'Pro', price: '$99', feats: ['Unlimited uploads', '3-month gallery', 'Live slideshow', 'Priority support'], cta: 'Choose Pro' },
           ].map(({ name, price, feats, cta, highlight }) => (
             <div key={name} className={`card relative text-center ${highlight ? 'border-gold' : ''}`}>
               {highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gold text-white text-[10px] tracking-widest uppercase px-4 py-1.5 rounded-sm">Most Loved</div>}

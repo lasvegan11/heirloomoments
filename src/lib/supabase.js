@@ -8,8 +8,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // Plan limits
 export const PLAN_LIMITS = {
   free:  { max_uploads: 50,          retention_days: 7,   label: 'Free' },
-  plus:  { max_uploads: 150,         retention_days: 90,  label: 'Plus' },
-  pro:   { max_uploads: 999999,      retention_days: 180, label: 'Pro' },
+  plus:  { max_uploads: 150,         retention_days: 30,  label: 'Plus' },
+  pro:   { max_uploads: 999999,      retention_days: 90,  label: 'Pro' },
 }
 
 // Generate a unique slug from event title
