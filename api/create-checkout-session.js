@@ -4,6 +4,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 // Prices in cents. Keep in sync with PLAN_LIMITS in src/lib/supabase.js.
 const PLAN_PRICES = {
+  free: { amount: 1900, label: 'Starter' },
   plus: { amount: 3900, label: 'Plus' },
   pro: { amount: 9900, label: 'Pro' },
 }

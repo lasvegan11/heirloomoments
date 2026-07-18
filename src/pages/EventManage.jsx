@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import JSZip from 'jszip'
-import { supabase } from '../lib/supabase'
+import { supabase, PLAN_LIMITS } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 
 export default function EventManage() {
@@ -190,7 +190,7 @@ export default function EventManage() {
           <div className="card border-yellow-500/40 bg-yellow-500/5 mb-8 flex items-center justify-between flex-wrap gap-4">
             <div>
               <div className="font-medium">⚠ Payment pending</div>
-              <div className="text-espresso-soft text-sm">This event's {event.plan} plan payment hasn't completed yet — guests can't upload until it's paid.</div>
+              <div className="text-espresso-soft text-sm">This event's {PLAN_LIMITS[event.plan]?.label || event.plan} plan payment hasn't completed yet — guests can't upload until it's paid.</div>
             </div>
             <button onClick={handleCompletePayment} disabled={payingNow} className="btn-primary text-sm py-2 px-4">
               {payingNow ? 'Redirecting…' : 'Complete payment →'}

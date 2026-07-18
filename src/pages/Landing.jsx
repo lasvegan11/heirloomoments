@@ -62,7 +62,7 @@ export default function Landing() {
         <h2 className="serif text-4xl text-center mb-14 font-medium">Pay once, per event</h2>
         <div className="grid md:grid-cols-3 gap-6">
           {[
-            { name: 'Free', price: '$0', feats: ['50 uploads', '7-day gallery', 'Live slideshow', 'Batch download'], cta: 'Get started' },
+            { name: 'Starter', price: '$19', feats: ['50 uploads', '7-day gallery', 'Live slideshow', 'Batch download'], cta: 'Get started' },
             { name: 'Plus', price: '$39', feats: ['150 uploads', '30-day gallery', 'Live slideshow', 'Moderation tools'], cta: 'Choose Plus', highlight: true },
             { name: 'Pro', price: '$99', feats: ['Unlimited uploads', '3-month gallery', 'Live slideshow', 'Priority support'], cta: 'Choose Pro' },
           ].map(({ name, price, feats, cta, highlight }) => (

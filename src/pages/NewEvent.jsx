@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 
 // Prices in dollars, for display only. Actual charge amount is set
 // server-side in api/create-checkout-session.js — keep both in sync.
-const PLAN_PRICES = { free: '$0', plus: '$39', pro: '$99' }
+const PLAN_PRICES = { free: '$19', plus: '$39', pro: '$99' }
 
 export default function NewEvent() {
   const { user } = useAuth()
@@ -33,16 +33,11 @@ export default function NewEvent() {
       moderation_enabled: moderation,
       max_uploads: limits.max_uploads,
       retention_days: limits.retention_days,
-      payment_status: plan === 'free' ? 'paid' : 'pending',
+      payment_status: 'pending',
       plan,
     }).select().single()
 
     if (error) { setError(error.message); setLoading(false); return }
-
-    if (plan === 'free') {
-      navigate(`/dashboard/events/${data.slug}`)
-      return
-    }
 
     try {
       const res = await fetch('/api/create-checkout-session', {
@@ -69,7 +64,7 @@ export default function NewEvent() {
       </header>
       <main className="max-w-xl mx-auto px-6 py-12">
         <h1 className="serif text-4xl mb-2">Create an event</h1>
-        <p className="text-espresso-soft mb-8">Your QR code will be ready instantly</p>
+        <p className="text-espresso-soft mb-8">Your QR code will be ready right after payment</p>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">Event title *</label>
@@ -116,7 +111,7 @@ export default function NewEvent() {
           </div>
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <button className="btn-primary w-full" disabled={loading}>
-            {loading ? (plan === 'free' ? 'Creating…' : 'Redirecting to payment…') : (plan === 'free' ? 'Create event & get QR code →' : `Continue to payment (${PLAN_PRICES[plan]}) →`)}
+            {loading ? 'Redirecting to payment…' : `Continue to payment (${PLAN_PRICES[plan]}) →`}
           </button>
         </form>
       </main>

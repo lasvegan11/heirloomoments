@@ -7,7 +7,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Plan limits
 export const PLAN_LIMITS = {
-  free:  { max_uploads: 50,          retention_days: 7,   label: 'Free' },
+  free:  { max_uploads: 50,          retention_days: 7,   label: 'Starter' },
   plus:  { max_uploads: 150,         retention_days: 30,  label: 'Plus' },
   pro:   { max_uploads: 999999,      retention_days: 90,  label: 'Pro' },
 }
