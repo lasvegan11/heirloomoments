@@ -5,6 +5,18 @@ import JSZip from 'jszip'
 import { supabase, PLAN_LIMITS } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 
+// "Download all" zips this many files per click, and "Save to Photos" shares
+// this many per tap. Kept modest so a big event (180+ files) never builds one
+// giant zip in memory — that crashes phones, especially iPhones.
+const DOWNLOAD_BATCH = 30
+const SHARE_BATCH = 8
+
+// Real file extension from a storage URL (so downloads/saves keep .jpg/.mov/etc).
+function uploadExt(url) {
+  const ext = (url || '').split('?')[0].split('.').pop()
+  return ext && ext.length <= 5 ? ext.toLowerCase() : 'jpg'
+}
+
 export default function EventManage() {
   const { slug } = useParams()
   const { user } = useAuth()
@@ -16,6 +28,15 @@ export default function EventManage() {
   const [downloading, setDownloading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [payingNow, setPayingNow] = useState(false)
+  // batched "Download all" + iOS "Save to Photos"
+  const [partIndex, setPartIndex] = useState(0)
+  const [progressMsg, setProgressMsg] = useState('')
+  const [canShareFiles, setCanShareFiles] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const [preparing, setPreparing] = useState(false)
+  const [shareIndex, setShareIndex] = useState(0)
+  const [readyFiles, setReadyFiles] = useState([])
+  const [readySet, setReadySet] = useState(-1)
 
   const guestUrl = `${window.location.origin}/e/${slug}`
 
@@ -55,6 +76,14 @@ export default function EventManage() {
     return () => supabase.removeChannel(channel)
   }, [event?.id])
 
+  // Can this device hand image files to the OS share sheet? (iPhone/iPad → Photos app)
+  useEffect(() => {
+    try {
+      const probe = new File(['a'], 'a.jpg', { type: 'image/jpeg' })
+      if (navigator.canShare && navigator.canShare({ files: [probe] })) setCanShareFiles(true)
+    } catch {}
+  }, [])
+
   async function handleCompletePayment() {
     setPayingNow(true)
     try {
@@ -84,24 +113,89 @@ export default function EventManage() {
     setEvent(data)
   }
 
-  async function handleBatchDownload() {
-    setDownloading(true)
-    const zip = new JSZip()
+  // Download ONE zip of up to DOWNLOAD_BATCH files, one per click. Zipping a
+  // whole large event at once builds a huge in-memory blob that crashes phones,
+  // so we batch it; STORE avoids re-compressing already-compressed JPEGs.
+  async function downloadPart(b) {
     const approved = uploads.filter(u => u.status === 'approved')
-    await Promise.all(approved.map(async (upload, i) => {
-      try {
-        const res = await fetch(upload.file_url)
-        const blob = await res.blob()
-        const ext = upload.file_type === 'video' ? 'mp4' : 'jpg'
-        zip.file(`${String(i + 1).padStart(3, '0')}.${ext}`, blob)
-      } catch {}
-    }))
-    const content = await zip.generateAsync({ type: 'blob' })
-    const url = URL.createObjectURL(content)
-    const a = document.createElement('a')
-    a.href = url; a.download = `${slug}-photos.zip`; a.click()
-    URL.revokeObjectURL(url)
+    if (!approved.length) return
+    const count = Math.ceil(approved.length / DOWNLOAD_BATCH)
+    const multi = count > 1
+    setDownloading(true)
+    try {
+      const part = approved.slice(b * DOWNLOAD_BATCH, b * DOWNLOAD_BATCH + DOWNLOAD_BATCH)
+      const zip = new JSZip()
+      for (let i = 0; i < part.length; i++) {
+        setProgressMsg(multi ? `Zip ${b + 1}/${count} — ${i + 1}/${part.length}` : `Preparing ${i + 1}/${part.length}`)
+        try {
+          const res = await fetch(part[i].file_url)
+          const blob = await res.blob()
+          const idx = b * DOWNLOAD_BATCH + i + 1
+          zip.file(`${String(idx).padStart(3, '0')}.${uploadExt(part[i].file_url)}`, blob)
+        } catch {}
+      }
+      setProgressMsg('Saving…')
+      const content = await zip.generateAsync({ type: 'blob', compression: 'STORE' })
+      const url = URL.createObjectURL(content)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = multi ? `${slug}-part-${b + 1}-of-${count}.zip` : `${slug}-photos.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+      setPartIndex(b + 1)
+    } catch {}
+    setProgressMsg('')
     setDownloading(false)
+  }
+
+  // iOS "Save to Photos": fetch a set of files, then (on a second tap) hand them
+  // to the native share sheet. Two steps because iOS revokes the tap permission
+  // if you await long work before calling navigator.share.
+  async function prepareSet(b) {
+    const approved = uploads.filter(u => u.status === 'approved')
+    const count = Math.ceil(approved.length / SHARE_BATCH)
+    if (!approved.length || b >= count) return
+    setPreparing(true)
+    try {
+      const part = approved.slice(b * SHARE_BATCH, b * SHARE_BATCH + SHARE_BATCH)
+      const files = []
+      for (let i = 0; i < part.length; i++) {
+        setProgressMsg(`Loading ${i + 1}/${part.length}…`)
+        const res = await fetch(part[i].file_url)
+        const blob = await res.blob()
+        const idx = b * SHARE_BATCH + i + 1
+        files.push(new File([blob], `${String(idx).padStart(3, '0')}.${uploadExt(part[i].file_url)}`, { type: blob.type || 'image/jpeg' }))
+      }
+      setReadyFiles(files)
+      setReadySet(b)
+    } catch {}
+    setProgressMsg('')
+    setPreparing(false)
+  }
+
+  async function shareReady() {
+    if (readySet < 0 || !readyFiles.length) return
+    if (!navigator.canShare || !navigator.canShare({ files: readyFiles })) return
+    const approved = uploads.filter(u => u.status === 'approved')
+    const count = Math.ceil(approved.length / SHARE_BATCH)
+    setSharing(true)
+    try {
+      await navigator.share({ files: readyFiles, title: event?.title || 'Photos' })
+      const done = readySet + 1
+      setReadyFiles([]); setReadySet(-1); setShareIndex(done)
+      if (done < count) prepareSet(done)
+    } catch {
+      // AbortError = the host dismissed the share sheet; keep files so they can retry
+    }
+    setSharing(false)
+  }
+
+  function onSaveTap() {
+    const approved = uploads.filter(u => u.status === 'approved')
+    const count = Math.ceil(approved.length / SHARE_BATCH)
+    if (shareIndex >= count) { setShareIndex(0); setReadyFiles([]); setReadySet(-1); prepareSet(0); return }
+    if (readySet === shareIndex && readyFiles.length) shareReady()
+    else if (!preparing) prepareSet(shareIndex)
   }
 
   async function handleDeleteEvent() {
@@ -160,6 +254,9 @@ export default function EventManage() {
 
   const pending = uploads.filter(u => u.status === 'pending')
   const approved = uploads.filter(u => u.status === 'approved')
+  const zipCount = Math.ceil(approved.length / DOWNLOAD_BATCH)
+  const shareCount = Math.ceil(approved.length / SHARE_BATCH)
+  const readyForCurrent = readySet === shareIndex && readyFiles.length > 0
 
   if (loading || !event) return <div className="min-h-screen bg-cream flex items-center justify-center"><div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin" /></div>
 
@@ -254,9 +351,37 @@ export default function EventManage() {
                 </div>
               </div>
 
-              <button onClick={handleBatchDownload} disabled={downloading || approved.length === 0} className="btn-secondary w-full text-sm py-3">
-                {downloading ? 'Zipping…' : `⬇ Download all ${approved.length} approved uploads`}
-              </button>
+              {approved.length > 0 && (
+                <div className="space-y-2">
+                  {canShareFiles && (
+                    <button onClick={onSaveTap} disabled={sharing || preparing || downloading} className="btn-secondary w-full text-sm py-3">
+                      {preparing ? 'Loading…'
+                        : sharing ? 'Opening…'
+                        : readyForCurrent ? `📲 Tap to save ${readyFiles.length} to Photos`
+                        : shareIndex >= shareCount ? '📲 Save to Photos again'
+                        : shareCount <= 1 ? '📲 Save all to Photos'
+                        : shareIndex === 0 ? `📲 Save to Photos · ${shareCount} sets`
+                        : `📲 Save to Photos · set ${shareIndex + 1} of ${shareCount}`}
+                    </button>
+                  )}
+
+                  <button onClick={() => downloadPart(partIndex >= zipCount ? 0 : partIndex)} disabled={downloading || sharing} className="btn-secondary w-full text-sm py-3">
+                    {downloading ? (progressMsg || 'Zipping…')
+                      : zipCount <= 1 ? `⬇ Download all ${approved.length}`
+                      : partIndex === 0 ? `⬇ Download all ${approved.length} · ${zipCount} zips`
+                      : partIndex < zipCount ? `⬇ Download zip ${partIndex + 1} of ${zipCount}`
+                      : '⬇ Download again'}
+                  </button>
+
+                  {progressMsg && !downloading && <p className="text-espresso-soft text-xs text-center">{progressMsg}</p>}
+                  {!downloading && !preparing && !sharing && zipCount > 1 && partIndex > 0 && partIndex < zipCount && (
+                    <p className="text-espresso-soft text-xs text-center">Zip {partIndex} of {zipCount} saved — tap for the next.</p>
+                  )}
+                  {canShareFiles && !downloading && !preparing && !sharing && shareIndex === 0 && (
+                    <p className="text-espresso-soft text-xs text-center">On iPhone? “Save to Photos” sends them to your album, a set at a time.</p>
+                  )}
+                </div>
+              )}
 
               <button onClick={handleDeleteEvent} disabled={deleting} className="w-full py-3 text-sm text-red-400 hover:text-red-300 border border-red-400/20 hover:border-red-400/40 rounded-xl transition-colors">
                 {deleting ? 'Deleting…' : '🗑 Delete this event'}
