@@ -106,11 +106,20 @@ export default function GuestUpload() {
 
   async function handleFileChange(e) {
     const selected = Array.from(e.target.files)
+    // Reset the picker so re-opening it doesn't carry stale selection state.
+    if (fileRef.current) fileRef.current.value = ''
     if (!selected.length) return
     setError('')
     setProcessing(true)
+    // Skip anything already in the queue. Guests often re-open the picker and
+    // re-select the same photos when unsure it worked — without this, the same
+    // photo got queued (and uploaded) many times over.
+    const seen = new Set(files.map(it => it.sig))
     const valid = []
     for (const f of selected) {
+      const sig = f.name + '|' + f.size + '|' + (f.lastModified || 0)
+      if (seen.has(sig)) continue
+      seen.add(sig)
       const isVideo = f.type.startsWith('video')
       if (isVideo) {
         const duration = await getVideoDuration(f)
@@ -123,14 +132,14 @@ export default function GuestUpload() {
           continue
         }
         const poster = await getVideoPoster(f)
-        valid.push({ file: f, preview: URL.createObjectURL(f), poster, id: Math.random().toString(36).slice(2) })
+        valid.push({ file: f, preview: URL.createObjectURL(f), poster, sig, id: Math.random().toString(36).slice(2) })
       } else {
         const compressed = await compressImage(f)
         if (compressed.size > MAX_PHOTO_MB * 1024 * 1024) {
           setError('"' + f.name + '" is too large. Photos must be under ' + MAX_PHOTO_MB + 'MB.')
           continue
         }
-        valid.push({ file: compressed, preview: URL.createObjectURL(compressed), id: Math.random().toString(36).slice(2) })
+        valid.push({ file: compressed, preview: URL.createObjectURL(compressed), sig, id: Math.random().toString(36).slice(2) })
       }
     }
     setFiles(prev => [...prev, ...valid])
