@@ -37,6 +37,9 @@ export default function EventManage() {
   const [shareIndex, setShareIndex] = useState(0)
   const [readyFiles, setReadyFiles] = useState([])
   const [readySet, setReadySet] = useState(-1)
+  const [deletingId, setDeletingId] = useState('')
+  const [deduping, setDeduping] = useState(false)
+  const [dedupeMsg, setDedupeMsg] = useState('')
 
   const guestUrl = `${window.location.origin}/e/${slug}`
 
@@ -196,6 +199,53 @@ export default function EventManage() {
     if (shareIndex >= count) { setShareIndex(0); setReadyFiles([]); setReadySet(-1); prepareSet(0); return }
     if (readySet === shareIndex && readyFiles.length) shareReady()
     else if (!preparing) prepareSet(shareIndex)
+  }
+
+  // Delete one upload: storage object + DB row (host is authenticated, so RLS allows both).
+  async function deleteUpload(upload) {
+    setDeletingId(upload.id)
+    const path = upload.file_url.split('/event-media/')[1]
+    if (path) await supabase.storage.from('event-media').remove([path])
+    await supabase.from('uploads').delete().eq('id', upload.id)
+    setDeletingId('')
+    fetchUploads()
+  }
+
+  // Find byte-identical copies (same photo uploaded more than once) and remove
+  // all but one of each. Hashes each file in the browser, then deletes the extras.
+  async function removeDuplicates() {
+    const approved = uploads.filter(u => u.status === 'approved')
+      .slice().sort((a, b) => new Date(a.uploaded_at) - new Date(b.uploaded_at)) // oldest first → keep the original
+    if (!approved.length) return
+    setDeduping(true)
+    try {
+      const seen = new Map()
+      const toDelete = []
+      for (let i = 0; i < approved.length; i++) {
+        setDedupeMsg(`Scanning ${i + 1}/${approved.length}…`)
+        try {
+          const buf = await (await fetch(approved[i].file_url)).arrayBuffer()
+          const digest = await crypto.subtle.digest('SHA-256', buf)
+          const hash = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('')
+          if (seen.has(hash)) toDelete.push(approved[i])
+          else seen.set(hash, approved[i])
+        } catch {}
+      }
+      if (!toDelete.length) { setDeduping(false); setDedupeMsg(''); alert('No duplicates found — every photo is unique.'); return }
+      if (!confirm(`Found ${toDelete.length} duplicate cop${toDelete.length === 1 ? 'y' : 'ies'}. Remove ${toDelete.length === 1 ? 'it' : 'them'}? (keeps one of each photo)`)) {
+        setDeduping(false); setDedupeMsg(''); return
+      }
+      let done = 0
+      for (const up of toDelete) {
+        setDedupeMsg(`Removing ${++done}/${toDelete.length}…`)
+        const path = up.file_url.split('/event-media/')[1]
+        if (path) await supabase.storage.from('event-media').remove([path])
+        await supabase.from('uploads').delete().eq('id', up.id)
+      }
+      await fetchUploads()
+    } catch {}
+    setDeduping(false)
+    setDedupeMsg('')
   }
 
   async function handleDeleteEvent() {
@@ -383,6 +433,12 @@ export default function EventManage() {
                 </div>
               )}
 
+              {approved.length > 1 && (
+                <button onClick={removeDuplicates} disabled={deduping || downloading || sharing} className="btn-secondary w-full text-sm py-3">
+                  {deduping ? (dedupeMsg || 'Scanning…') : '🧹 Remove duplicate photos'}
+                </button>
+              )}
+
               <button onClick={handleDeleteEvent} disabled={deleting} className="w-full py-3 text-sm text-red-400 hover:text-red-300 border border-red-400/20 hover:border-red-400/40 rounded-xl transition-colors">
                 {deleting ? 'Deleting…' : '🗑 Delete this event'}
               </button>
@@ -431,11 +487,16 @@ export default function EventManage() {
             ) : (
               <div className="columns-2 md:columns-3 lg:columns-4 gap-3 space-y-3">
                 {approved.map(upload => (
-                  <div key={upload.id} className="break-inside-avoid">
+                  <div key={upload.id} className="break-inside-avoid relative group">
                     {upload.file_type === 'photo'
-                      ? <img src={upload.file_url} alt={upload.caption || ''} className="w-full rounded-xl" />
-                      : <video src={upload.file_url} controls className="w-full rounded-xl" />
+                      ? <img src={upload.file_url} alt={upload.caption || ''} loading="lazy" className="w-full rounded-xl" />
+                      : <video src={upload.file_url} controls preload="metadata" className="w-full rounded-xl" />
                     }
+                    <button onClick={() => deleteUpload(upload)} disabled={deletingId === upload.id}
+                      title="Delete this upload"
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-xs flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-red-600">
+                      {deletingId === upload.id ? '…' : '✕'}
+                    </button>
                     {upload.caption && <p className="text-xs text-espresso-soft mt-1 px-1">{upload.caption}</p>}
                   </div>
                 ))}
