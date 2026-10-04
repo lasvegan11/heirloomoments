@@ -86,8 +86,11 @@ export default function GuestUpload() {
   }
 
   async function fetchUploads(eventId) {
+    // Show every approved upload (no cap) — the album used to .limit(20), so
+    // big events displayed "180 total" but only rendered the latest 20.
+    // Images below lazy-load, so a large gallery stays light on phones.
     const { data, count } = await supabase.from('uploads').select('*', { count: 'exact' })
-      .eq('event_id', eventId).eq('status', 'approved').order('uploaded_at', { ascending: false }).limit(20)
+      .eq('event_id', eventId).eq('status', 'approved').order('uploaded_at', { ascending: false })
     setUploads(data || [])
     setUploadCount(count || 0)
   }
@@ -298,8 +301,8 @@ export default function GuestUpload() {
             {uploads.map(upload => (
               <div key={upload.id} className="break-inside-avoid">
                 {upload.file_type === 'photo'
-                  ? <img src={upload.file_url} alt={upload.caption || ''} className="w-full rounded-xl" />
-                  : <video src={upload.file_url} controls className="w-full rounded-xl" />
+                  ? <img src={upload.file_url} alt={upload.caption || ''} loading="lazy" className="w-full rounded-xl" />
+                  : <video src={upload.file_url} controls preload="metadata" className="w-full rounded-xl" />
                 }
                 {(upload.caption || upload.uploader_name) && (
                   <p className="text-xs text-espresso-soft mt-1 px-1">
